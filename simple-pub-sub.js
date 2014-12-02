@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 // Simple Example, taken from https://github.com/squaremo/amqp.node
+var amqp = require('amqplib/callback_api');
 
 var QUEUE_NAME = 'tasks';
 
@@ -40,7 +41,7 @@ function consumer(conn) {
   });
 }
 
-require('amqplib/callback_api').connect('amqp://localhost', function(err, conn) {
+amqp.connect('amqp://localhost', function(err, conn) {
   if (err !== null) {
     return bail(err);
   }
