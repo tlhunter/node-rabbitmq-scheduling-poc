@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
 var amqp = require('amqplib/callback_api');
-var os = require('os');
 var sleep = require('sleep');
 
-var QUEUE_NAME = process.pid + '@' + os.hostname(); // Unique queue name per process
 var EXCHANGE_NAME = 'example-pubsub';
+var QUEUE_NAME = 'worker-queue';
 
 amqp.connect('amqp://localhost', function(err, conn) {
 	process.once('SIGINT', function() { conn.close(); });
@@ -13,7 +12,7 @@ amqp.connect('amqp://localhost', function(err, conn) {
 	conn.createChannel(function(err, channel) {
 		channel.assertExchange(EXCHANGE_NAME, 'direct', { durable: true });
 
-		channel.assertQueue(QUEUE_NAME, { exclusive: true }, function(err, qok) {
+		channel.assertQueue(QUEUE_NAME, { exclusive: false }, function(err, qok) {
 			channel.bindQueue(qok.queue, EXCHANGE_NAME, '');
 
 			channel.consume(qok.queue, function(msg) {
