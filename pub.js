@@ -1,31 +1,45 @@
 #!/usr/bin/env node
 
 var amqp = require('amqplib/callback_api');
+var async = require('async');
 
 var EXCHANGE_NAME = 'example-pubsub';
-var MESSAGE_COUNT = 10000;
+var MESSAGE_COUNT = 4000;
 var TICK = Math.floor(MESSAGE_COUNT / 100);
 
 amqp.connect('amqp://localhost', function(err, conn) {
-	process.once('SIGINT', function() { conn.close(); });
+	process.once('SIGINT', function() { console.log('KILLING...'); conn.close(); });
 
 	conn.createChannel(function(err, channel) {
 		channel.assertExchange(EXCHANGE_NAME, 'direct', { durable: true });
 
-		// TODO: This blocks like you wouldn't believe...
-		for (var i = 0; i < MESSAGE_COUNT; i++) {
-			sender(i);
+		var count = 0;
 
-			if (i % TICK === 0) {
-				console.log(i / TICK + '%');
+		async.whilst(
+			function() { return count < MESSAGE_COUNT; },
+			function(cb) {
+				count++;
+
+				if (count % TICK === 0) {
+					console.log(count / TICK + '%');
+				}
+
+				sender(count);
+
+				setImmediate(cb);
+			},
+			function() {
+				sender('FIN');
+
+				setImmediate(function() {
+					conn.close();
+				});
 			}
-		}
+		);
 
-		sender('FIN');
-
-		function sender(i) {
+		function sender(count) {
 			channel.publish(EXCHANGE_NAME, '', new Buffer(JSON.stringify({
-				message: i
+				message: count
 			})));
 		}
 	});
